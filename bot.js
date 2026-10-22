@@ -1,10 +1,16 @@
 const mineflayer = require('@wp2508/mineflayer');
 
-const HOST = 'basslet.aternos.host';
-const PORT = 50275;
-const USERNAME = 'Raboot';
+const CONFIG = {
+    host: 'basslet.aternos.host',
+    port: 50275,
+    username: 'Raboot',
+    version: false
+};
 
-let reconectando = false;
+const ESPERA_RECONEXAO = 25000;
+const INTERVALO_ROTINA = 45000;
+
+let reconexaoAgendada = false;
 
 function esperar(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -12,28 +18,32 @@ function esperar(ms) {
 
 function createBot() {
     console.log('[NPC] Conectando ao servidor...');
+    console.log(`[NPC] Endereço: ${CONFIG.host}:${CONFIG.port}`);
 
-    const bot = mineflayer.createBot({
-        host: HOST,
-        port: PORT,
-        username: USERNAME,
-        version: false
-    });
+    let bot;
+
+    try {
+        bot = mineflayer.createBot(CONFIG);
+    } catch (err) {
+        console.error('[NPC] Falha ao criar conexão:', err.message);
+        agendarReconexao();
+        return;
+    }
 
     let rotinaIniciada = false;
     let encerrando = false;
 
     bot.on('login', () => {
-        console.log('[NPC] Conectado ao servidor Java.');
+        console.log('[NPC] Login realizado.');
     });
 
     bot.on('spawn', () => {
         console.log('[NPC] Bot entrou no servidor.');
 
-        if (!rotinaIniciada) {
-            rotinaIniciada = true;
-            executarRotina();
-        }
+        if (rotinaIniciada) return;
+
+        rotinaIniciada = true;
+        executarRotina();
     });
 
     async function executarRotina() {
@@ -48,7 +58,7 @@ function createBot() {
                     });
 
                     if (chestBlock) {
-                        console.log('[NPC] Abrindo baú...');
+                        console.log('[NPC] Baú encontrado. Tentando abrir...');
 
                         const chest = await bot.openChest(chestBlock);
 
@@ -57,47 +67,57 @@ function createBot() {
                         chest.close();
                         console.log('[NPC] Baú fechado.');
                     } else {
-                        console.log('[NPC] Nenhum baú encontrado.');
+                        console.log('[NPC] Nenhum baú encontrado a até 5 blocos.');
                     }
                 }
 
                 await esperar(1000);
 
-                if (bot.entity) {
+                if (bot.entity && !encerrando) {
                     bot.setControlState('jump', true);
                     await esperar(500);
                     bot.setControlState('jump', false);
+                    console.log('[NPC] Salto realizado.');
                 }
             } catch (err) {
-                console.log('[NPC] Erro na rotina:', err.message);
+                console.error('[NPC] Erro na rotina:', err.message);
 
                 try {
                     bot.clearControlStates();
                 } catch {}
             }
 
-            await esperar(45000);
+            await esperar(INTERVALO_ROTINA);
         }
     }
 
     bot.on('end', reason => {
         encerrando = true;
-        console.log('[NPC] Desconectado:', reason);
 
-        if (!reconectando) {
-            reconectando = true;
-            console.log('[NPC] Tentando reconectar em 25 segundos...');
+        try {
+            bot.clearControlStates();
+        } catch {}
 
-            setTimeout(() => {
-                reconectando = false;
-                createBot();
-            }, 25000);
-        }
+        console.log('[NPC] Conexão encerrada:', reason);
+        console.log('[NPC] Consulte o Console do Aternos para verificar se a tentativa chegou ao servidor.');
+
+        agendarReconexao();
     });
 
     bot.on('error', err => {
-        console.log('[NPC] Erro:', err.message);
+        console.error('[NPC] Erro de conexão:', err.message);
     });
+
+    function agendarReconexao() {
+        if (reconexaoAgendada) return;
+
+        reconexaoAgendada = true;
+
+        setTimeout(() => {
+            reconexaoAgendada = false;
+            createBot();
+        }, ESPERA_RECONEXAO);
+    }
 }
 
 createBot();
