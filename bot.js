@@ -1,6 +1,6 @@
 const mineflayer = require('@wp2508/mineflayer');
 
-const HOST = 'SuperDragonZ.aternos.me';
+const HOST = 'basslet.aternos.host';
 const PORT = 50275;
 const USERNAME = 'Raboot';
 
