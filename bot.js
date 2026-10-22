@@ -3,7 +3,7 @@ const mineflayer = require('mineflayer');
 function createBot() {
     const bot = mineflayer.createBot({
         host: 'SuperDragonZ.aternos.me', // <--- REEMPLAZA ESTO POR LA IP DE TU SERVER
-        port: 19132,                // Puerto predeterminado de Minecraft
+        port: 50275,                // Puerto predeterminado de Minecraft
         username: 'Raboot',    // Nombre genérico del bot/NPC dentro del juego
         version: false              // Autodetecta la versión exacta del servidor (1.8 a 1.21+)
     });
