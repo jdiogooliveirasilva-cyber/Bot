@@ -10,7 +10,6 @@ on:
 jobs:
   executar-bot:
     runs-on: ubuntu-latest
-
     steps:
       - name: Clonar repositório
         uses: actions/checkout@v4
@@ -20,10 +19,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Instalar dependências
+      - name: Instalar dependências compatíveis
         run: |
           npm init -y
-          npm install mineflayer@latest minecraft-protocol@latest
+          npm install @wp2508/mineflayer@latest
 
       - name: Executar script do NPC
         run: node bot.js
