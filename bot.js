@@ -1,15 +1,27 @@
+const mineflayer = require('@wp2508/mineflayer');
 
-const mineflayer = require('mineflayer');
+const HOST = 'SuperDragonZ.aternos.me';
+const PORT = 50275;
+const USERNAME = 'Raboot';
+
+let reconectando = false;
+
+function esperar(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function createBot() {
+    console.log('[NPC] Conectando ao servidor...');
+
     const bot = mineflayer.createBot({
-        host: 'SuperDragonZ.aternos.me',
-        port: 50275,
-        username: 'Raboot',
+        host: HOST,
+        port: PORT,
+        username: USERNAME,
         version: false
     });
 
     let rotinaIniciada = false;
+    let encerrando = false;
 
     bot.on('login', () => {
         console.log('[NPC] Conectado ao servidor Java.');
@@ -18,14 +30,14 @@ function createBot() {
     bot.on('spawn', () => {
         console.log('[NPC] Bot entrou no servidor.');
 
-        if (rotinaIniciada) return;
-        rotinaIniciada = true;
-
-        executarRotina();
+        if (!rotinaIniciada) {
+            rotinaIniciada = true;
+            executarRotina();
+        }
     });
 
     async function executarRotina() {
-        while (bot.entity) {
+        while (bot.entity && !encerrando) {
             try {
                 const chestId = bot.registry.blocksByName.chest?.id;
 
@@ -40,9 +52,7 @@ function createBot() {
 
                         const chest = await bot.openChest(chestBlock);
 
-                        await new Promise(resolve =>
-                            setTimeout(resolve, 2000)
-                        );
+                        await esperar(2000);
 
                         chest.close();
                         console.log('[NPC] Baú fechado.');
@@ -51,33 +61,38 @@ function createBot() {
                     }
                 }
 
-                await new Promise(resolve =>
-                    setTimeout(resolve, 1000)
-                );
+                await esperar(1000);
 
-                bot.setControlState('jump', true);
-
-                await new Promise(resolve =>
-                    setTimeout(resolve, 500)
-                );
-
-                bot.setControlState('jump', false);
-
+                if (bot.entity) {
+                    bot.setControlState('jump', true);
+                    await esperar(500);
+                    bot.setControlState('jump', false);
+                }
             } catch (err) {
                 console.log('[NPC] Erro na rotina:', err.message);
+
+                try {
+                    bot.clearControlStates();
+                } catch {}
             }
 
-            await new Promise(resolve =>
-                setTimeout(resolve, 45000)
-            );
+            await esperar(45000);
         }
     }
 
     bot.on('end', reason => {
+        encerrando = true;
         console.log('[NPC] Desconectado:', reason);
-        console.log('[NPC] Tentando reconectar em 25 segundos...');
 
-        setTimeout(createBot, 25000);
+        if (!reconectando) {
+            reconectando = true;
+            console.log('[NPC] Tentando reconectar em 25 segundos...');
+
+            setTimeout(() => {
+                reconectando = false;
+                createBot();
+            }, 25000);
+        }
     });
 
     bot.on('error', err => {
@@ -86,4 +101,3 @@ function createBot() {
 }
 
 createBot();
-        
