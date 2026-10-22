@@ -4,10 +4,12 @@ const CONFIG = {
     host: 'basslet.aternos.host',
     port: 50275,
     username: 'Raboot',
-    version: false
+    version: false,
+    connectTimeout: 60000,
+    hideErrors: false
 };
 
-const ESPERA_RECONEXAO = 25000;
+const TEMPO_RECONEXAO = 25000;
 const INTERVALO_ROTINA = 45000;
 
 let reconexaoAgendada = false;
@@ -25,7 +27,7 @@ function createBot() {
     try {
         bot = mineflayer.createBot(CONFIG);
     } catch (err) {
-        console.error('[NPC] Falha ao criar conexão:', err.message);
+        console.error('[NPC] Falha ao criar o bot:', err.message);
         agendarReconexao();
         return;
     }
@@ -34,7 +36,7 @@ function createBot() {
     let encerrando = false;
 
     bot.on('login', () => {
-        console.log('[NPC] Login realizado.');
+        console.log('[NPC] Login realizado com sucesso.');
     });
 
     bot.on('spawn', () => {
@@ -58,7 +60,7 @@ function createBot() {
                     });
 
                     if (chestBlock) {
-                        console.log('[NPC] Baú encontrado. Tentando abrir...');
+                        console.log('[NPC] Baú encontrado. Abrindo...');
 
                         const chest = await bot.openChest(chestBlock);
 
@@ -67,7 +69,7 @@ function createBot() {
                         chest.close();
                         console.log('[NPC] Baú fechado.');
                     } else {
-                        console.log('[NPC] Nenhum baú encontrado a até 5 blocos.');
+                        console.log('[NPC] Nenhum baú encontrado num raio de 5 blocos.');
                     }
                 }
 
@@ -75,8 +77,11 @@ function createBot() {
 
                 if (bot.entity && !encerrando) {
                     bot.setControlState('jump', true);
+
                     await esperar(500);
+
                     bot.setControlState('jump', false);
+
                     console.log('[NPC] Salto realizado.');
                 }
             } catch (err) {
@@ -99,25 +104,25 @@ function createBot() {
         } catch {}
 
         console.log('[NPC] Conexão encerrada:', reason);
-        console.log('[NPC] Consulte o Console do Aternos para verificar se a tentativa chegou ao servidor.');
-
         agendarReconexao();
     });
 
     bot.on('error', err => {
         console.error('[NPC] Erro de conexão:', err.message);
     });
+}
 
-    function agendarReconexao() {
-        if (reconexaoAgendada) return;
+function agendarReconexao() {
+    if (reconexaoAgendada) return;
 
-        reconexaoAgendada = true;
+    reconexaoAgendada = true;
 
-        setTimeout(() => {
-            reconexaoAgendada = false;
-            createBot();
-        }, ESPERA_RECONEXAO);
-    }
+    console.log(`[NPC] Nova tentativa em ${TEMPO_RECONEXAO / 1000} segundos...`);
+
+    setTimeout(() => {
+        reconexaoAgendada = false;
+        createBot();
+    }, TEMPO_RECONEXAO);
 }
 
 createBot();
